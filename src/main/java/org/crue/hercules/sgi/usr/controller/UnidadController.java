@@ -1,5 +1,6 @@
 package org.crue.hercules.sgi.usr.controller;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -7,16 +8,17 @@ import java.util.stream.Collectors;
 import javax.validation.Valid;
 import javax.validation.groups.Default;
 
+import org.crue.hercules.sgi.framework.web.bind.annotation.RequestPageable;
 import org.crue.hercules.sgi.usr.model.BaseEntity.Update;
 import org.crue.hercules.sgi.usr.model.Unidad;
 import org.crue.hercules.sgi.usr.service.UnidadService;
-import org.crue.hercules.sgi.framework.data.search.QueryCriteria;
-import org.crue.hercules.sgi.framework.web.bind.annotation.RequestPageable;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.util.CollectionUtils;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -54,44 +56,44 @@ public class UnidadController {
   /**
    * Devuelve una lista paginada y filtrada {@link Unidad}.
    * 
-   * @param query  filtro de {@link QueryCriteria}.
+   * @param query  filtro de búsqueda.
    * @param paging pageable.
    */
   @GetMapping()
   // @PreAuthorize("hasAuthorityForAnyUO('USR-UNI-V')")
-  ResponseEntity<Page<Unidad>> findAll(@RequestParam(name = "q", required = false) List<QueryCriteria> query,
+  ResponseEntity<Page<Unidad>> findAll(@RequestParam(name = "q", required = false) String query,
       @RequestPageable(sort = "s") Pageable paging) {
-    log.debug("findAll(List<QueryCriteria> query, Pageable paging) - start");
+    log.debug("findAll(String query, Pageable paging) - start");
     Page<Unidad> page = service.findAll(query, paging);
 
     if (page.isEmpty()) {
-      log.debug("findAll(List<QueryCriteria> query, Pageable paging) - end");
+      log.debug("findAll(String query, Pageable paging) - end");
       return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 
-    log.debug("findAll(List<QueryCriteria> query, Pageable paging) - end");
+    log.debug("findAll(String query, Pageable paging) - end");
     return new ResponseEntity<>(page, HttpStatus.OK);
   }
 
   /**
    * Devuelve una lista paginada y filtrada {@link Unidad}.
    * 
-   * @param query  filtro de {@link QueryCriteria}.
+   * @param query  filtro de búsqueda.
    * @param paging pageable.
    */
   @GetMapping("/todos")
   // @PreAuthorize("hasAuthorityForAnyUO('USR-UNI-V')")
-  ResponseEntity<Page<Unidad>> findAllTodos(@RequestParam(name = "q", required = false) List<QueryCriteria> query,
+  ResponseEntity<Page<Unidad>> findAllTodos(@RequestParam(name = "q", required = false) String query,
       @RequestPageable(sort = "s") Pageable paging) {
-    log.debug("findAllTodos(List<QueryCriteria> query, Pageable paging) - start");
+    log.debug("findAllTodos(String query, Pageable paging) - start");
     Page<Unidad> page = service.findAllTodos(query, paging);
 
     if (page.isEmpty()) {
-      log.debug("findAllTodos(List<QueryCriteria> query, Pageable paging) - end");
+      log.debug("findAllTodos(String query, Pageable paging) - end");
       return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 
-    log.debug("findAllTodos(List<QueryCriteria> query, Pageable paging) - end");
+    log.debug("findAllTodos(String query, Pageable paging) - end");
     return new ResponseEntity<>(page, HttpStatus.OK);
   }
 
@@ -99,16 +101,14 @@ public class UnidadController {
    * Devuelve una lista paginada y filtrada {@link Unidad} restringida por los
    * permisos del usuario logueado.
    * 
-   * @param query  filtro de {@link QueryCriteria}.
+   * @param query  filtro de búsqueda.
    * @param paging pageable.
    */
   @GetMapping("/restringidos")
   // @PreAuthorize("hasAuthorityForAnyUO('USR-UNI-V')")
-  ResponseEntity<Page<Unidad>> findAllTodosRestringidos(
-      @RequestParam(name = "q", required = false) List<QueryCriteria> query,
+  ResponseEntity<Page<Unidad>> findAllTodosRestringidos(@RequestParam(name = "q", required = false) String query,
       @RequestPageable(sort = "s") Pageable paging, Authentication atuhentication) {
-    log.debug(
-        "findAllTodosRestringidos(List<QueryCriteria> query, Pageable paging, Authentication atuhentication) - start");
+    log.debug("findAllTodosRestringidos(String query, Pageable paging, Authentication atuhentication) - start");
 
     List<String> acronimosUnidadGestion = atuhentication.getAuthorities().stream().map(acronimo -> {
       if (acronimo.getAuthority().indexOf("_") > 0) {
@@ -117,16 +117,18 @@ public class UnidadController {
       return null;
     }).filter(Objects::nonNull).distinct().collect(Collectors.toList());
 
-    Page<Unidad> page = service.findAllRestringidos(query, acronimosUnidadGestion, paging);
+    Page<Unidad> page = new PageImpl<Unidad>(Collections.emptyList());
+
+    if (!CollectionUtils.isEmpty(acronimosUnidadGestion)) {
+      page = service.findAllRestringidos(query, acronimosUnidadGestion, paging);
+    }
 
     if (page.isEmpty()) {
-      log.debug(
-          "findAllTodosRestringidos(List<QueryCriteria> query, Pageable paging, Authentication atuhentication) - end");
+      log.debug("findAllTodosRestringidos(String query, Pageable paging, Authentication atuhentication) - end");
       return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 
-    log.debug(
-        "findAllTodosRestringidos(List<QueryCriteria> query, Pageable paging, Authentication atuhentication) - end");
+    log.debug("findAllTodosRestringidos(String query, Pageable paging, Authentication atuhentication) - end");
     return new ResponseEntity<>(page, HttpStatus.OK);
   }
 
@@ -142,6 +144,21 @@ public class UnidadController {
     log.debug("findById(Long id) - start");
     Unidad returnValue = service.findById(id);
     log.debug("findById(Long id) - end");
+    return returnValue;
+  }
+
+  /**
+   * Devuelve el {@link Unidad} con el acrónimo indicado.
+   * 
+   * @param acronimo Acrónimo de {@link Unidad}.
+   * @return {@link Unidad} correspondiente al acrónimo.
+   */
+  @GetMapping("/acronimo/{acronimo}")
+  // @PreAuthorize("hasAuthorityForAnyUO('USR-UNI-V')")
+  Unidad findByAcronimo(@PathVariable String acronimo) {
+    log.debug("findByAcronimo(String id) - start");
+    Unidad returnValue = service.findByAcronimo(acronimo);
+    log.debug("findByAcronimo(String id) - end");
     return returnValue;
   }
 

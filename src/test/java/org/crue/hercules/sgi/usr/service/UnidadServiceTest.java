@@ -11,12 +11,10 @@ import org.crue.hercules.sgi.usr.repository.UnidadRepository;
 import org.crue.hercules.sgi.usr.service.impl.UnidadServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentMatchers;
 import org.mockito.BDDMockito;
 import org.mockito.Mock;
 import org.mockito.invocation.InvocationOnMock;
-import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.stubbing.Answer;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -27,7 +25,6 @@ import org.springframework.data.jpa.domain.Specification;
 /**
  * UnidadServiceTest
  */
-@ExtendWith(MockitoExtension.class)
 
 public class UnidadServiceTest extends BaseServiceTest {
 
@@ -351,6 +348,34 @@ public class UnidadServiceTest extends BaseServiceTest {
       Unidad unidad = page.getContent().get(i - (page.getSize() * page.getNumber()) - 1);
       Assertions.assertThat(unidad.getNombre()).isEqualTo("Unidad" + String.format("%03d", i));
     }
+  }
+
+  @Test
+  public void findByAcronimo_ReturnsUnidad() {
+    // given: Un Unidad con el acrónimo buscado
+    String acronimo = "OPE";
+    BDDMockito.given(repository.findByAcronimo(acronimo)).willReturn(Optional.of(generarMockUnidad(1L)));
+
+    // when: Buscamos el Unidad por su acrónimo
+    Unidad unidad = service.findByAcronimo(acronimo);
+
+    // then: el Unidad
+    Assertions.assertThat(unidad).as("isNotNull()").isNotNull();
+    Assertions.assertThat(unidad.getId()).as("getId()").isEqualTo(1L);
+    Assertions.assertThat(unidad.getNombre()).as("getNombre()").isEqualTo("nombre-1");
+    Assertions.assertThat(unidad.getAcronimo()).as("getAcronimo()").isEqualTo("OPE");
+    Assertions.assertThat(unidad.getActivo()).as("getActivo()").isEqualTo(true);
+  }
+
+  @Test
+  public void findByAcronimo_WithIdNotExist_ThrowsUnidadNotFoundException() throws Exception {
+    // given: Ningun Unidad con el acrónimo buscado
+    String acronimo = "OPE";
+    BDDMockito.given(repository.findByAcronimo(acronimo)).willReturn(Optional.empty());
+
+    // when: Buscamos el Unidad por su acrónimo
+    // then: lanza un UnidadNotFoundException
+    Assertions.assertThatThrownBy(() -> service.findByAcronimo(acronimo)).isInstanceOf(UnidadNotFoundException.class);
   }
 
   /**
